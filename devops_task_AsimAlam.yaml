@@ -1,0 +1,72 @@
+---
+## Playbook Create By Syed Asim Alam devops-12##
+
+- hosts: webservers
+  become: true
+  vars:
+    port: 8080
+  tasks:
+    - name: Install of Nginx
+      apt:
+        name: nginx
+        state: present
+    - name: Configuration update on Nginx
+      lineinfile:
+        path: /etc/nginx/sites-available/default
+        regexp: 'listen 80 default_server;'
+        line: 'listen {{ port }} default_server;'
+#        state: present  # Only modify if the file exists
+
+    - name: another directive update on Nginx
+      lineinfile:
+        path: /etc/nginx/sites-available/default
+        regexp: 'listen \[::\]:80 default_server;$'
+        state: absent
+
+    - name: Clone Git Directory
+      shell: mkdir -p /var/www/html/webtask && git clone https://github.com/engineerbaz/webTasks.git /var/www/html/webtask/
+
+    - name: copy Index.html
+      shell: cp /var/www/html/webtask/index.html /var/www/html/
+
+    - name: Reload Nginx Service
+      become: yes
+      service:
+        name: nginx
+        state: reloaded
+        enabled: yes
+
+- hosts: linux_pc
+  become: yes
+  tasks:
+    - name: Create Group on Linux  Machine
+      group:
+        name: devops_grp
+        state: present
+
+    - name: Loop for create Multiple users
+      user:
+        name: "{{ item }}"
+        group: devops_grp
+        append: yes
+        home: "/home/{{ item }}"
+        shell: "/bin/bash"
+      with_items:
+        - devopusr1
+        - devopusr2
+
+    - name: Install Multiple  Packages
+      apt:
+        name: "{{ item }}" 
+        state: present
+      with_items:
+        - figlet
+        - pwgen
+    - shell: touch /etc/motd
+
+    - name: Set MOTD message
+      lineinfile:
+        dest: "/etc/motd"
+        line: "Welcome to DevOps"
+        validate: "/bin/grep -q '%s' /etc/motd"
+        create: yes
