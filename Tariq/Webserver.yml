@@ -1,0 +1,36 @@
+---
+  - hosts: webserver
+    connection: ssh
+    become: true        
+    tasks:
+      - name: Install nginx package
+        apt:
+          name: nginx
+          state: present
+        
+      - name: Changing port to 8080
+        replace:
+          path: "/etc/nginx/sites-available/default"  
+          regexp: 'listen\s+80\s'       
+          replace: 'listen 8080 '      
+           
+      - name: Removing default html directory (with index file)
+        shell: |
+          rm -rf /var/www/html
+          mkdir /var/www/html
+        args:
+          executable: /bin/bash
+      
+      - name: Cloning desired webserver
+        git:
+          repo: 'https://github.com/engineerbaz/webTasks.git' 
+          dest: '/var/www/html/'
+          version: 'main'
+          update: yes
+  
+      - name: Restart & enable nginx service
+        systemd:
+          name: nginx
+          state: restarted
+          enabled: true
+  
