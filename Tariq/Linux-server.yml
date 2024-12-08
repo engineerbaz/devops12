@@ -1,0 +1,46 @@
+---
+- hosts: webserver
+  connection: ssh
+  become: true        
+  tasks:
+    - name: Upgrade all packages to the latest version
+      apt:
+        name: "*"
+        state: latest
+
+    - name: Creating Devops group
+      group: 
+        name: devops
+        state: present
+
+    - name: Creating 2 users with same group devops
+      user:
+        name: "{{item}}"
+        append: yes
+        groups: devops
+        home: "/home/{{item}}"
+        shell: "/bin/bash"
+      with_items:
+        - user1
+        - user2
+
+    - name: Installing softwares
+      apt:
+        name: "{{item}}"
+        state: present
+      with_items:
+        - figlet
+        - pwgen
+
+    - name: Create custom MOTD script
+      ansible.builtin.copy:
+        dest: /etc/update-motd.d/99-custom-message
+        content: |
+          #!/bin/bash
+          echo "Welcome to DevOps!"
+        mode: '0755'
+
+    - name: Restart SSH service
+      service:
+        name: ssh
+        state: restarted
